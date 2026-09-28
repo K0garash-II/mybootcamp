@@ -55,7 +55,6 @@ func (c *Credit) deposit(dep float64, to *Credit) {
 	to.CreditBalance += commission
 }
 
-
 func (d *Debit) transfer(to *Debit, amount float64) error {
 	if d.DebitBalance < amount {
 		return errors.New("недостаточно средств")
