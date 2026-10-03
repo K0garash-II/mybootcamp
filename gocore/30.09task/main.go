@@ -52,7 +52,9 @@ func (d *DebitcardStore) Push(id int, amount float64) error {
 	if !ok {
 		return errors.New("Карта не найдена")
 	}
-
+	if amount <= 0 {
+		return errors.New("невалидный ввод")
+	}
 	card.Balance += amount
 	d.cards[id] = card
 
@@ -65,7 +67,9 @@ func (c *CreditCardStore) Push(id int, amount float64) error {
 	if !ok {
 		return errors.New("Карта не найдена")
 	}
-
+	if amount <= 0 {
+		return errors.New("невалидный ввод")
+	}
 	commission := 0.0
 	if amount >= 1000 {
 		commission = amount * 0.01
@@ -83,6 +87,9 @@ func (w *CryptoWalletStore) Push(id int, amount float64) error {
 	wallet, ok := w.wallets[id]
 	if !ok {
 		return errors.New("Кошелек не найден")
+	}
+	if amount <= 0 {
+		return errors.New("невалидный ввод")
 	}
 
 	commission := 0.0
@@ -118,12 +125,19 @@ func Pusher(p Payer, id int, amount float64) error {
 
 func (d *DebitcardStore) Replenish(id int, password int, amount float64) error {
 	card, ok := d.cards[id]
+	if amount <= 0 {
+		return errors.New("невалидный ввод")
+	}
 	if !ok {
 		return errors.New("карта не найдена")
 	}
 	if card.Password != password {
 		return errors.New("неверный пароль")
 	}
+	if card.Balance < amount {
+		return errors.New("недостаточно средств")
+	}
+
 	card.Balance -= amount
 	d.cards[id] = card
 	fmt.Printf("Успешный перевод!\n")
@@ -132,17 +146,25 @@ func (d *DebitcardStore) Replenish(id int, password int, amount float64) error {
 }
 func (c *CreditCardStore) Replenish(id int, password int, amount float64) error {
 	card, ok := c.cards[id]
+	commission := 0.0
+	if amount <= 0 {
+		return errors.New("невалидный ввод")
+	}
 	if !ok {
 		return errors.New("карта не найдена")
 	}
 	if card.Password != password {
 		return errors.New("неверный пароль")
 	}
-	commission := 0.0
 	if amount >= 1000 {
 		commission = amount * 0.01
 	}
-	card.Balance -= amount + commission
+	total := amount + commission
+	if card.Balance < total {
+		return errors.New("недостаточно средств")
+	}
+
+	card.Balance -= total
 	c.cards[id] = card
 
 	fmt.Printf("Успешный перевод!\n")
@@ -152,14 +174,16 @@ func (c *CreditCardStore) Replenish(id int, password int, amount float64) error 
 }
 func (w *CryptoWalletStore) Replenish(id int, password int, amount float64) error {
 	wallet, ok := w.wallets[id]
+	commission := 0.0
+	if amount <= 0 {
+		return errors.New("невалидный ввод")
+	}
 	if !ok {
 		return errors.New("Кошелек не найден")
 	}
 	if wallet.Password != password {
 		return errors.New("неверный пароль")
 	}
-	commission := 0.0
-
 	var ans int
 	fmt.Println("Выберете сеть для перевода")
 	fmt.Println("1. ETH")
@@ -169,15 +193,19 @@ func (w *CryptoWalletStore) Replenish(id int, password int, amount float64) erro
 	fmt.Scan(&ans)
 	if ans == 1 {
 		commission = amount * 0.05
-	}
-	if ans == 2 {
+	} else if ans == 2 {
 		commission = amount * 0.01
-	}
-	if ans == 3 {
+	} else if ans == 3 {
 		commission = amount * 0.02
+	} else {
+		return errors.New("неверный выбор сети")
+	}
+	total := commission + amount
+	if wallet.Balance < total {
+		return errors.New("недостаточно средств")
 	}
 
-	wallet.Balance -= amount + commission
+	wallet.Balance -= total
 	w.wallets[id] = wallet
 
 	fmt.Printf("Успешный перевод!\n")
