@@ -1,3 +1,0 @@
-module tr
-
-go 1.27.1

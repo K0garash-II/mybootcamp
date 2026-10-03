@@ -191,15 +191,17 @@ func (w *CryptoWalletStore) Replenish(id int, password int, amount float64) erro
 	fmt.Println("3. TRC")
 
 	fmt.Scan(&ans)
-	if ans == 1 {
+	switch ans {
+	case 1:
 		commission = amount * 0.05
-	} else if ans == 2 {
+	case 2:
 		commission = amount * 0.01
-	} else if ans == 3 {
+	case 3:
 		commission = amount * 0.02
-	} else {
+	default:
 		return errors.New("неверный выбор сети")
 	}
+
 	total := commission + amount
 	if wallet.Balance < total {
 		return errors.New("недостаточно средств")
@@ -245,7 +247,7 @@ func addAny(a Adder, id int, owner string, password int) {
 	a.Add(id, owner, password)
 }
 
-func openAny() (string, int, error) {
+func scrapData() (string, int, error) {
 	var owner string
 	var password int
 	var password2 int
@@ -291,7 +293,7 @@ func main() {
 					id = p.ID + 1
 				}
 			}
-			owner, password, err := openAny()
+			owner, password, err := scrapData()
 			if err != nil {
 				fmt.Println("Ошибка: ", err)
 				continue
@@ -306,7 +308,7 @@ func main() {
 					id = p.ID + 1
 				}
 			}
-			owner, password, err := openAny()
+			owner, password, err := scrapData()
 			if err != nil {
 				fmt.Println("Ошибка: ", err)
 				continue
@@ -321,7 +323,7 @@ func main() {
 					id = p.ID + 1
 				}
 			}
-			owner, password, err := openAny()
+			owner, password, err := scrapData()
 			if err != nil {
 				fmt.Println("Ошибка: ", err)
 				continue
