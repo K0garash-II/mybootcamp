@@ -13,6 +13,10 @@ type Adder interface {
 	Add(id int, owner string, password int)
 }
 
+type Replenisher interface {
+	Replenish(id int, password int, amount float64) error
+}
+
 type DebitCard struct {
 	Owner    string
 	Password int
@@ -112,6 +116,79 @@ func Pusher(p Payer, id int, amount float64) error {
 	return p.Push(id, amount)
 }
 
+func (d *DebitcardStore) Replenish(id int, password int, amount float64) error {
+	card, ok := d.cards[id]
+	if !ok {
+		return errors.New("карта не найдена")
+	}
+	if card.Password != password {
+		return errors.New("неверный пароль")
+	}
+	card.Balance -= amount
+	d.cards[id] = card
+	fmt.Printf("Успешный перевод!\n")
+	return nil
+
+}
+func (c *CreditCardStore) Replenish(id int, password int, amount float64) error {
+	card, ok := c.cards[id]
+	if !ok {
+		return errors.New("карта не найдена")
+	}
+	if card.Password != password {
+		return errors.New("неверный пароль")
+	}
+	commission := 0.0
+	if amount >= 1000 {
+		commission = amount * 0.01
+	}
+	card.Balance -= amount + commission
+	c.cards[id] = card
+
+	fmt.Printf("Успешный перевод!\n")
+	fmt.Printf("Комиссия за вывод составила %0.2fр\n", commission)
+
+	return nil
+}
+func (w *CryptoWalletStore) Replenish(id int, password int, amount float64) error {
+	wallet, ok := w.wallets[id]
+	if !ok {
+		return errors.New("Кошелек не найден")
+	}
+	if wallet.Password != password {
+		return errors.New("неверный пароль")
+	}
+	commission := 0.0
+
+	var ans int
+	fmt.Println("Выберете сеть для перевода")
+	fmt.Println("1. ETH")
+	fmt.Println("2. SOL")
+	fmt.Println("3. TRC")
+
+	fmt.Scan(&ans)
+	if ans == 1 {
+		commission = amount * 0.05
+	}
+	if ans == 2 {
+		commission = amount * 0.01
+	}
+	if ans == 3 {
+		commission = amount * 0.02
+	}
+
+	wallet.Balance -= amount + commission
+	w.wallets[id] = wallet
+
+	fmt.Printf("Успешный перевод!\n")
+	fmt.Printf("Комиссия за вывод составила %0.2fр\n", commission)
+
+	return nil
+}
+func Replen(r Replenisher, id int, password int, amount float64) error {
+	return r.Replenish(id, password, amount)
+}
+
 func (d *DebitcardStore) Add(id int, owner string, password int) {
 	d.cards[id] = DebitCard{
 		ID:       id,
@@ -176,6 +253,7 @@ func main() {
 		fmt.Println("4. Пополнить дебетовую карту")
 		fmt.Println("5. Пополнить кредитную карту")
 		fmt.Println("6. Пополнить криптокошелек")
+		fmt.Println("7. Перевод средств")
 		fmt.Scan(&ans)
 
 		if ans == 1 {
