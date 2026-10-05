@@ -19,9 +19,18 @@ func process(x any) {
 	
 }
 
+func printAny[T any](x T) {
+	fmt.Println(x)
+}
+
 func main() {
 	process(10)
 	process(10.1)
 	process("hello")
 	process(true)
+
+	printAny(10)
+	printAny(10.1)
+	printAny("hello")
+	printAny(true)
 }
