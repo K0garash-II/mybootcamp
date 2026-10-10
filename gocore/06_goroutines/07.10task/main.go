@@ -92,7 +92,7 @@ func (b *Banc) Process(p *Payment) (Result, error) {
 
 	accTo.Balance += p.Amount
 	b.Accounts[p.To] = accTo
-	
+
 	result := Result{
 		PaymentID: p.ID,
 		Success: true,
@@ -102,9 +102,7 @@ func (b *Banc) Process(p *Payment) (Result, error) {
 	b.Processed[p.ID] = result
 
 	return result, nil
-
 }
-
 
 func worker(payments <-chan Payment, results chan<- Result, b *Banc, wg *sync.WaitGroup) {
 	defer wg.Done()
@@ -137,7 +135,6 @@ func main() {
 	}
 	payments := make(chan Payment, 10)
 	results := make(chan Result, 10)
-
 
 	go produce(payments)
 
