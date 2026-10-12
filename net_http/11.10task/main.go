@@ -47,6 +47,48 @@ func accountsHandler(accounts []Account) http.HandlerFunc {
 	}
 }
 
+func depositHandler(accounts []Account) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			http.Error(w, "Method not alllowed", http.StatusMethodNotAllowed)
+			return 
+		}
+
+		id := r.URL.Query().Get("id")
+		idInt, err := strconv.Atoi(id)
+		if err != nil {
+			http.Error(w, "Invalid account id", http.StatusBadRequest)
+			return 
+		}
+
+		amount := r.URL.Query().Get("amount")
+		amountFloat, err := strconv.ParseFloat(amount, 64)
+		if err != nil {
+			http.Error(w, "Invalid account amount", http.StatusBadRequest)
+			return 
+		}
+
+		if amountFloat <= 0 {
+			http.Error(w, "Bad request", http.StatusBadRequest)
+			return 
+		}
+
+		var found bool = false
+		for i := range accounts {
+			if accounts[i].ID == idInt {
+				found = true
+				accounts[i].Balance += amountFloat
+				fmt.Fprintf(w, "Account %v replenished. Balance: %0.2f\n", id, accounts[i].Balance)
+				return 
+			} 
+		}
+		if !found {
+			http.Error(w, "Not Found", http.StatusNotFound)
+			return
+		}
+	}
+}
+
 func main() {
 	accounts := []Account{
 		{ID: 1, Owner: "Egor", Balance: 1000},
@@ -54,6 +96,7 @@ func main() {
 		{ID: 3, Owner: "Tom", Balance: 2000},
 	}
 	http.HandleFunc("/accounts", accountsHandler(accounts))
+	http.HandleFunc("/accounts/deposit", depositHandler(accounts))
 
 	err := http.ListenAndServe(":8080", nil)
 	if err != nil {
