@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"net/http"
 )
 
 type Account struct {
@@ -11,30 +12,35 @@ type Account struct {
 	Balance float64 `json:"balance"`
 }
 
-func main() {
-	account := Account{
-		ID: 7,
-		Owner: "Alex",
-		Balance: 4500,
+func handlerPost(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
 	}
 
-	acc, err := json.Marshal(account)
+	var account Account
+
+	err := json.NewDecoder(r.Body).Decode(&account)
 	if err != nil {
-		fmt.Println("Error", err)
+		http.Error(w, "Invalid JSON", http.StatusBadRequest)
 		return
 	}
 
-	fmt.Println(string(acc))
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
 
-	data := []byte(`{"id":2,"owner":"Bob","balance":2500}`)
-
-	var x Account
-
-	err1 := json.Unmarshal(data, &x)
-	if err1 != nil {
-		fmt.Println("Error", err1)
-		return
+	err = json.NewEncoder(w).Encode(account)
+	if err != nil {
+		fmt.Println("Failed to encode response:", err)
+    	return
 	}
+}
 
-	fmt.Println(x.Owner, x.Balance)
+func main() {
+	http.HandleFunc("/accounts", handlerPost)
+
+	err := http.ListenAndServe(":8080", nil)
+	if err != nil {
+		fmt.Println("Server error", err)
+	}
 }
