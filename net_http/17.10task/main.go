@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strings"
 )
 
 type Account struct {
@@ -26,13 +27,18 @@ func handlerPost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if account.ID <= 0 || strings.TrimSpace(account.Owner) == "" || account.Balance < 0 {
+		http.Error(w, "Bad request", http.StatusBadRequest)
+		return
+	}
+
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
 
 	err = json.NewEncoder(w).Encode(account)
 	if err != nil {
 		fmt.Println("Failed to encode response:", err)
-    	return
+		return
 	}
 }
 
