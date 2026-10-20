@@ -160,11 +160,9 @@ func handlerGetAcc(b *Bank) http.HandlerFunc {
 }
 
 func main() {
-	var mut sync.Mutex
 	accounts := make(map[int]Account)
 
 	bank := Bank{
-		mu:       mut,
 		accounts: accounts,
 	}
 
