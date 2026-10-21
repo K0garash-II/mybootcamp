@@ -108,14 +108,7 @@ func handlerPush(b *Bank) http.HandlerFunc {
 
 		b.mu.Unlock()
 
-		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-
-		err = json.NewEncoder(w).Encode(account)
-		if err != nil {
-			fmt.Println("Failed to encode response:", err)
-			return
-		}
 	}
 }
 
@@ -159,6 +152,41 @@ func handlerGetAcc(b *Bank) http.HandlerFunc {
 	}
 }
 
+func handlerDeleteAccount(b *Bank) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodDelete {
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+
+		id := r.URL.Query().Get("id")
+		idInt, err := strconv.Atoi(id)
+		if err != nil {
+			http.Error(w, "Invalid account id", http.StatusBadRequest)
+			return
+		}
+		if idInt <= 0 {
+			http.Error(w, "Invalid ID", http.StatusBadRequest)
+			return 
+		}
+
+		b.mu.Lock()
+
+		_, ok := b.accounts[idInt]
+		if !ok {
+			http.Error(w, "Not found", http.StatusNotFound)
+			b.mu.Unlock()
+			return 
+		}
+
+		delete(b.accounts, idInt)
+
+		b.mu.Unlock()
+
+		w.WriteHeader(http.StatusOK)
+	}
+}
+
 func main() {
 	accounts := make(map[int]Account)
 
@@ -169,6 +197,7 @@ func main() {
 	http.HandleFunc("/accounts", handlerAdd(&bank))
 	http.HandleFunc("/accounts/deposit", handlerPush(&bank))
 	http.HandleFunc("/accounts/info", handlerGetAcc(&bank))
+	http.HandleFunc("/accounts/delete", handlerDeleteAccount(&bank))
 
 	err := http.ListenAndServe(":8080", nil)
 	if err != nil {
