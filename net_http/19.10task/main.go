@@ -20,6 +20,12 @@ type Bank struct {
 	accounts map[int]Account
 }
 
+type TransferRequest struct {
+	From   int     `json:"from"`
+	To     int     `json:"to"`
+	Amount float64 `json:"amount"`
+}
+
 func handlerAdd(b *Bank) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
@@ -79,7 +85,7 @@ func handlerPush(b *Bank) http.HandlerFunc {
 		}
 		if idInt <= 0 {
 			http.Error(w, "Invalid ID", http.StatusBadRequest)
-			return 
+			return
 		}
 
 		amount := r.URL.Query().Get("amount")
@@ -100,7 +106,7 @@ func handlerPush(b *Bank) http.HandlerFunc {
 		if !ok {
 			http.Error(w, "Not found", http.StatusNotFound)
 			b.mu.Unlock()
-			return 
+			return
 		}
 
 		account.Balance += amountFloat
@@ -127,7 +133,7 @@ func handlerGetAcc(b *Bank) http.HandlerFunc {
 		}
 		if idInt <= 0 {
 			http.Error(w, "Invalid ID", http.StatusBadRequest)
-			return 
+			return
 		}
 
 		b.mu.Lock()
@@ -136,7 +142,7 @@ func handlerGetAcc(b *Bank) http.HandlerFunc {
 		if !ok {
 			http.Error(w, "Not found", http.StatusNotFound)
 			b.mu.Unlock()
-			return 
+			return
 		}
 
 		b.mu.Unlock()
@@ -167,19 +173,73 @@ func handlerDeleteAccount(b *Bank) http.HandlerFunc {
 		}
 		if idInt <= 0 {
 			http.Error(w, "Invalid ID", http.StatusBadRequest)
-			return 
+			return
 		}
 
 		b.mu.Lock()
 
 		_, ok := b.accounts[idInt]
 		if !ok {
-			http.Error(w, "Not found", http.StatusNotFound)
 			b.mu.Unlock()
-			return 
+			http.Error(w, "Not found", http.StatusNotFound)
+			return
 		}
 
 		delete(b.accounts, idInt)
+
+		b.mu.Unlock()
+
+		w.WriteHeader(http.StatusOK)
+	}
+}
+
+func handelerTransfer(b *Bank) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPut {
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+
+		var req TransferRequest
+
+		err := json.NewDecoder(r.Body).Decode(&req)
+		if err != nil {
+			http.Error(w, "Invalid JSON", http.StatusBadRequest)
+			return
+		}
+
+		if req.From <= 0 || req.To <= 0 || req.From == req.To || req.Amount <= 0 {
+			http.Error(w, "Invalid transfer data", http.StatusBadRequest)
+			return
+		}
+
+		b.mu.Lock()
+
+		accountFrom, ok := b.accounts[req.From]
+		if !ok {
+			b.mu.Unlock()
+			http.Error(w, "Not found", http.StatusNotFound)
+			return
+		}
+
+		accountTo, ok := b.accounts[req.To]
+		if !ok {
+			b.mu.Unlock()
+			http.Error(w, "Not found", http.StatusNotFound)
+			return
+		}
+
+		if accountFrom.Balance < req.Amount {
+			b.mu.Unlock()
+			http.Error(w, "Insufficient funds", http.StatusConflict)
+			return
+		}
+
+		accountFrom.Balance -= req.Amount
+		accountTo.Balance += req.Amount
+
+		b.accounts[req.From] = accountFrom
+		b.accounts[req.To] = accountTo
 
 		b.mu.Unlock()
 
